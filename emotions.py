@@ -4,12 +4,23 @@ from deepface import DeepFace
 #Create model
 model = DeepFace.build_model("Emotion")
 
+#If error loading model...
+if model is None:
+    print("Error: Couldn't load emotion detection model.")
+    break
+
 emotion_labels = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']
 
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
 #Start capturing
 videocap = cv2.VideoCapture(0)
+
+#If any camera error...
+videocap = cv2.VideoCapture(0)
+if not videocap.isOpened():
+    print("Error: Couldn't open camera.")
+    break
 
 while True:
   ret, frame = videocap.read()
