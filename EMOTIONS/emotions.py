@@ -1,3 +1,4 @@
+pip install opencv-python
 import cv2
 from deepface import DeepFace
 
@@ -9,6 +10,7 @@ if model is None:
     print("Error: Couldn't load emotion detection model.")
     break
 
+#Labelling
 emotion_labels = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']
 
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
