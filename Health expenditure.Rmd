@@ -1,0 +1,226 @@
+---
+title: "Gapminder Data"
+author: "Hugo Jal"
+date: "2024-03-22"
+output:
+  html_document: default
+  pdf_document: default
+editor_options: null
+chunk_output_type: inline
+---
+
+```{r setup, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+In this study, I plan to analyze the health expenditure per person across countries and how it has evolved during the last years. Moreover, I will also evaluate this spending by comparing the average spending by continent.
+
+```{r, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(tidyverse)
+library(ggforce)
+library(patchwork)
+library(knitr)
+```
+
+
+```{r, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
+#Load the data
+health <- read.csv('total_health_spending_per_person_us.csv')
+```
+
+```{r, echo=TRUE, results='show', message=FALSE, warning=FALSE}
+head(health)
+```
+
+```{r Data Wrangling, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
+health_long <- health %>%
+  pivot_longer(
+    cols = starts_with("X"),  # Select columns that start with 'X'
+    names_to = "Year",        # Name of the new 'Year' column
+    names_prefix = "X",       # Remove the 'X' prefix from the column names
+    values_to = "Spending"    # Name of the new 'Spending' column
+  )
+```
+
+```{r, echo=TRUE, results='show', message=FALSE, warning=FALSE}
+head(health_long)
+```
+
+Now, I will plot the evolution of health spending by country from 1995 to 2010.
+```{r Plotting Evolution by Country, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
+# Assuming health_long is your data frame
+countries <- unique(health_long$country)
+pages <- ceiling(length(countries) / 4)  # ceiling(): Rounds up to the nearest whole number, ensuring there are enough pages for all countries. 4 plots per page
+
+country_plots <- list()
+
+for (page in 1:pages) {
+  start_index <- 1 + 4 * (page - 1)
+  end_index <- min(4 * page, length(countries)) # start_index and end_index: Calculate the range of indices in the countries vector for the current page. For example, for page 1 (page = 1), start_index is 1 and end_index is the minimum of 4 * 1 (4) or the total number of countries (length(countries)).
+
+  subset_countries <- countries[start_index:end_index]
+
+  subset_data <- health_long %>%
+    filter(country %in% subset_countries)
+
+  plot1 <- ggplot(data = subset_data, aes(x = Year, y = Spending)) +
+    geom_line() +
+    geom_point() +
+    facet_wrap(~ country, scales = "free") +
+    labs(title = paste("Health Spending Evolution by Country (Page", page, ")"),
+         x = "Year", y = "Spending (US dollars)") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+  country_plots[[page]] <- plot1
+}
+
+# Convert plots to grobs
+plot_grobs1 <- lapply(country_plots, function(plot1) ggplot2::ggplotGrob(plot1))
+
+# Arrange plots into pages
+plot_pages_arranged1 <- wrap_plots(plot_grobs1, ncol = 2)  # 2 plots per row
+
+# Print each page
+for (i in seq_along(plot_pages_arranged1)) {
+  print(plot_pages_arranged1[[i]])
+}
+
+# Save plots into a single PDF file
+pdf("health_spending_evolution.pdf", width = 12, height = 8)
+
+for (i in seq_along(plot_pages_arranged1)) {
+  print(plot_pages_arranged1[[i]])
+}
+dev.off()  # Close the PDF device
+```
+
+Now, I will group countries by continent and create line plots with their health spending. Obviously, the representation of the average spending is severely skewed, since population is not being taken into account. A weighted average considering population would result in a more thorough analysis, but for the sake of the exercise I will continue.
+
+```{r Creating Continent Groups, echo=TRUE, results='hide'}
+# Assuming health_long is your data frame
+countries <- unique(health_long$country)
+
+# Create groups
+
+countries_europe <- c("Albania", "Andorra", "Armenia", "Austria", "Azerbaijan", "Belarus", "Belgium", "Bosnia and Herzegovina", "Bulgaria", "Croatia", "Cyprus", "Czech Republic", "Denmark", "Estonia", "Finland", "France", "Georgia", "Germany", "Greece", "Hungary", "Iceland", "Ireland", "Italy", "Kazakhstan", "Latvia", "Liechtenstein", "Lithuania", "Luxembourg", "Malta", "Moldova", "Monaco", "Montenegro", "Netherlands", "North Macedonia", "Norway", "Poland", "Portugal", "Romania", "Russia", "San Marino", "Serbia", "Slovak Republic", "Slovenia", "Spain", "Sweden", "Switzerland", "Turkey", "Ukraine", "UK", "Vatican City")
+
+countries_africa <- c("Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi", "Cabo Verde", "Cameroon", "Central African Republic", "Chad", "Comoros", "Congo, Dem. Rep.", "Congo, Rep.", "Djibouti", "Egypt", "Equatorial Guinea", "Eritrea", "Eswatini", "Ethiopia", "Gabon", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Ivory Coast", "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi", "Mali", "Mauritania", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger", "Nigeria", "Rwanda", "Sao Tome and Principe", "Senegal", "Seychelles", "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", "Tanzania", "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe")
+
+countries_asia <- c("Afghanistan", "Bahrain", "Bangladesh", "Bhutan", "Brunei", "Cambodia", "China", "East Timor", "India", "Indonesia", "Iran", "Iraq", "Israel", "Japan", "Jordan", "Kazakhstan", "Kuwait", "Kyrgyzstan", "Laos", "Lebanon", "Malaysia", "Maldives", "Mongolia", "Myanmar", "Nepal", "North Korea", "Oman", "Pakistan", "Palestine", "Philippines", "Qatar", "Saudi Arabia", "Singapore", "South Korea", "Sri Lanka", "Syria", "Taiwan", "Tajikistan", "Thailand", "Turkey", "Turkmenistan", "United Arab Emirates", "Uzbekistan", "Vietnam", "Yemen")
+
+countries_north_america <- c("Antigua and Barbuda", "Bahamas", "Barbados", "Belize", "Canada", "Costa Rica", "Cuba", "Dominica", "Dominican Republic", "El Salvador", "Grenada", "Guatemala", "Haiti", "Honduras", "Jamaica", "Mexico", "Nicaragua", "Panama", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Trinidad and Tobago", "USA")
+
+countries_oceania <- c("Australia", "Fiji", "Kiribati", "Marshall Islands", "Micronesia", "Nauru", "New Zealand", "Palau", "Papua New Guinea", "Samoa", "Solomon Islands", "Tonga", "Tuvalu", "Vanuatu")
+
+countries_south_america <- c("Argentina", "Bolivia", "Brazil", "Chile", "Colombia", "Ecuador", "Guyana", "Paraguay", "Peru", "Suriname", "Uruguay", "Venezuela")
+
+```
+
+```{r Adding Continent Column, echo=TRUE, results='show', message=FALSE, warning=FALSE}
+# Create a new column 'continent' based on the categorization
+health_long <- health_long %>%
+  mutate(
+    continent = case_when(
+      country %in% countries_europe ~ "Europe",
+      country %in% countries_asia ~ "Asia",
+      country %in% countries_africa ~ "Africa",
+      country %in% countries_north_america ~ "North America",
+      country %in% countries_south_america ~ "South America",
+      country %in% countries_oceania ~ "Oceania",
+      TRUE ~ "Other"  # Handle any countries not categorized
+    )
+  )
+
+# Calculate average spending per continent per year
+average_spending <- health_long %>%
+  group_by(continent, Year) %>%
+  summarize(avg_spending = mean(Spending, na.rm = TRUE))
+
+head(average_spending)
+  
+```
+
+```{r Evolution of Health Spending per Person by Continent, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
+
+# Plotting with adjustments
+plot2 <- ggplot(average_spending, 
+                 aes(x = Year, y = avg_spending, 
+                 color = continent, group = continent)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Evolution of Health Spending per Person by Continent",
+       x = "Year",
+       y = "Spending (US dollars)",
+       color = "Continent")
+
+ggsave("evolution_health_spending.png", plot = plot2, width = 8, height = 6)
+
+plot(plot2)
+
+```
+
+Now, I want to know what the median spending per continent has been throughout 1995-2010. Thus, I will plot some box plots that will allow me to see where the median lies at a glance. Additionally, I believe the IQR will provide helpful information regarding how concentrated the data is, which conveniently allows us to determine whether people spend similar amounts of money on health-related services in each continent.
+
+```{r, echo=TRUE, results='show', message=FALSE, warning=FALSE}
+by(health_long, health_long$continent, summary)
+```
+
+I will be using both logarithmic and non-logarithmic scales to better understand the data.
+
+```{r Logarithmic Health Spending per Person by Continent, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
+plot3 <- ggplot(health_long, aes(x = continent, y = Spending, fill = continent)) +
+  geom_boxplot() +
+  labs(title = "Health Spending per Person by Continent (1995-2010)",
+       x = "Continent",
+       y = "Spending (US dollars)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(trans = 'log10')  # Using log scale due to large range
+
+# Save the plot
+ggsave("health_spendinglog_by_continent.png", plot = plot3, width = 10, height = 6)
+
+# Display the plot
+print(plot3)
+```
+
+```{r Non-logarithmic Health Spending per Person by Continent, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
+plot4 <- ggplot(health_long, aes(x = continent, y = Spending, fill = continent)) +
+  geom_boxplot() +
+  labs(title = "Health Spending per Person by Continent (1995-2010)",
+       x = "Continent",
+       y = "Spending (US dollars)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous()  # Using log scale due to large range
+
+# Save the plot
+ggsave("health_spending_by_continent.png", plot = plot4, width = 10, height = 6)
+
+# Display the plot
+print(plot4)
+```
+
+*Intra-Continental Trends:*
+Europe is the continent with the largest IQR in the non-logarithmic scale, showing absolute data, indicating a significant disparity among European countries. Some countries have high health expenditures while others have much lower ones, contributing to this difference. The presence of diverse healthcare systems throughout the continent may be a direct cause of this phenomenon.
+
+North America's distribution is heavily influenced by high outliers, likely reflecting the USA's exceptionally high healthcare costs and Canada's healthcare system. Additionally, North America presents outliers below the 1st quartile mark, illustrating a severe disparity among countries.
+
+Africa's low variability in absolute terms masks significant relative differences when viewed on a logarithmic scale. This reveals substantial relative differences in spending even among lower-spending countries, a nuance lost in the linear scale.
+
+Lastly, Asia, Oceania, and South America form a middle tier, showing significant internal variability. Most continents display positively skewed distributions, indicating a longer tail of higher spenders.
+
+*Global Inequality:*
+The linear scale highlights the enormous gap in health spending between continents. While some countries in North America and Europe spend over $8000 per person annually, most African nations spend less than $100. This extreme disparity underscores a critical global health inequality issue. The data emphasizes the urgent need for increased health funding in Africa and other low-spending regions.
+
+High variability within continents suggests opportunities for knowledge sharing and policy learning among neighboring countries. This raises the question of whether similar countries can apply the same strategies to improve the situation. Similarly, extreme outliers in high-spending regions raise questions about healthcare system efficiency and sustainability (Kruk et al. 2018).
+
+
+References
+
+Kruk, M. E., Gage, A. D., Arsenault, C., Jordan, K., Leslie, H. H., Roder-DeWan, S., Adeyi, O., Barker, P., Daelmans, B., Doubova, S. V., English, M., García-Elorrio, E., Guanais, F., Gureje, O., Hirschhorn, L. R., Jiang, L., Kelley, E., Lemango, E. T., Liljestrand, J., Malata, A., … Pate, M. (2018). High-quality health systems in the Sustainable Development Goals era: time for a revolution. The Lancet. Global health, 6(11), e1196–e1252. https://doi.org/10.1016/S2214-109X(18)30386-3
+
