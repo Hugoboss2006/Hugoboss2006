@@ -1,7 +1,7 @@
 - 👋 Hi, I’m Hugo
 - 👀 I’m interested in Bioengineering and Public Policy
-- 🌱 I’m currently learning about Computational Neuroscience
-- 💞️ Me and a group of students are currently researching Alzheimer's disease: https://github.com/hugojal/Utilising-stochastic-models-to-improve-existing-deterministic-models-of-AD-diagnosis.git
+- 🌱 I’m currently trying to improve my coding
+- 💞️ Me and a group of students just finished a project on Alzheimer's disease: https://github.com/hugojal/Utilising-stochastic-models-to-improve-existing-deterministic-models-of-AD-diagnosis.git
 - 📫 You can reach me via my instagram profile @_hugojal
 
 <!---
