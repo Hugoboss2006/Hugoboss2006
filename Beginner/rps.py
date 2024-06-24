@@ -1,5 +1,6 @@
 import random
 
+#Get name for greeting!
 def get_user_name():
     user_name = input("Hey! What's your name?").lower()
     while user_name.isnumeric():
