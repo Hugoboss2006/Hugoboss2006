@@ -1,0 +1,167 @@
+---
+title: "Inequality Evaluation"
+author: "Hugo Jal"
+date: "2024-06-01"
+output: pdf_document
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This project is an assignment part of the Data Analysis with R course available at Udacity. The aim of this project is to evaluate the progression of the Gini Coefficient - a measure of inequality - across 197 countries from 1800 to 2050 (i.e., predictions until 2050). The data was extracted from Gapminder.
+
+FREE DATA FROM WORLD BANK VIA GAPMINDER.ORG, CC-BY LICENSE
+
+```{r Load data}
+pf <- read.csv('gini.csv')
+```
+
+```{r Data Wrangling}
+library(dplyr)
+library(tidyverse)
+
+
+pf_long <- pf %>%
+  pivot_longer(
+    cols = starts_with("X"),  
+    names_to = "Year",        
+    names_prefix = "X",       
+    values_to = "Gini"  
+  )
+```
+
+```{r}
+countries <- unique(pf_long$country)
+
+# Create groups
+countries_europe <- c("Albania", "Andorra", "Armenia", "Austria", "Azerbaijan", "Belarus", "Belgium", "Bosnia and Herzegovina", "Bulgaria", "Croatia", "Cyprus", "Czech Republic", "Denmark", "Estonia", "Finland", "France", "Georgia", "Germany", "Greece", "Hungary", "Iceland", "Ireland", "Italy", "Kazakhstan", "Latvia", "Liechtenstein", "Lithuania", "Luxembourg", "Malta", "Moldova", "Monaco", "Montenegro", "Netherlands", "North Macedonia", "Norway", "Poland", "Portugal", "Romania", "Russia", "San Marino", "Serbia", "Slovak Republic", "Slovenia", "Spain", "Sweden", "Switzerland", "Turkey", "Ukraine", "UK", "Vatican City", "Holy See")
+
+countries_africa <- c("Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi", "Cape Verde", "Cameroon", "Central African Republic", "Chad", "Comoros", "Congo, Dem. Rep.", "Congo, Rep.", "Djibouti", "Egypt", "Equatorial Guinea", "Eritrea", "Eswatini", "Ethiopia", "Gabon", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Cote d'Ivoire", "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi", "Mali", "Mauritania", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger", "Nigeria", "Rwanda", "Sao Tome and Principe", "Senegal", "Seychelles", "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", "Tanzania", "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe")
+
+countries_asia <- c("Afghanistan", "Bahrain", "Bangladesh", "Bhutan", "Brunei", "Cambodia", "China", "Timor-Leste", "India", "Indonesia", "Iran", "Iraq", "Israel", "Japan", "Jordan", "Kazakhstan", "Kuwait", "Kyrgyz Republic", "Lao", "Lebanon", "Malaysia", "Maldives", "Mongolia", "Myanmar", "Nepal", "North Korea", "Oman", "Pakistan", "Palestine", "Philippines", "Qatar", "Saudi Arabia", "Singapore", "South Korea", "Sri Lanka", "Syria", "Taiwan", "Tajikistan", "Thailand", "Turkey", "Turkmenistan", "UAE", "Uzbekistan", "Vietnam", "Yemen", "Hong Kong, China")
+
+countries_north_america <- c("Antigua and Barbuda", "Bahamas", "Barbados", "Belize", "Canada", "Costa Rica", "Cuba", "Dominica", "Dominican Republic", "El Salvador", "Grenada", "Guatemala", "Haiti", "Honduras", "Jamaica", "Mexico", "Nicaragua", "Panama", "St. Kitts and Nevis", "St. Lucia", "St. Vincent and the Grenadines", "Trinidad and Tobago", "USA")
+
+countries_oceania <- c("Australia", "Fiji", "Kiribati", "Marshall Islands", "Micronesia, Fed. Sts.", "Nauru", "New Zealand", "Palau", "Papua New Guinea", "Samoa", "Solomon Islands", "Tonga", "Tuvalu", "Vanuatu")
+
+countries_south_america <- c("Argentina", "Bolivia", "Brazil", "Chile", "Colombia", "Ecuador", "Guyana", "Paraguay", "Peru", "Suriname", "Uruguay", "Venezuela")
+
+```
+
+```{r}
+library(dplyr)
+
+pf_long <- pf_long %>%
+  mutate(
+    continent = case_when(
+      country %in% countries_europe ~ "Europe",
+      country %in% countries_asia ~ "Asia",
+      country %in% countries_africa ~ "Africa",
+      country %in% countries_north_america ~ "North America",
+      country %in% countries_south_america ~ "South America",
+      country %in% countries_oceania ~ "Oceania",
+      TRUE ~ "Other"  # Handle any countries not categorized
+    )
+  )
+```
+
+**Gini Coefficient by Country**
+To start with, my main focus is the present Gini coefficient in 2024 for each of the 197 nations. Because there are numerous countries, the chart displays them organized by continent based on color. Moreover, the plot is interactive such that hovering your mouse over any point will display the country and Gini coefficient.
+```{r Filtering to 2024}
+library(tidyverse)
+
+# Filter data to 2024.
+pf_2024 <- pf_long %>% 
+  filter(pf_long$Year == 2024)
+```
+
+```{r Plotting interactive graph}
+library(plotly)
+
+p1 <-
+  ggplot(data = pf_2024, aes(x = factor(country), y = Gini, , color = continent, text = paste("Country:", country, "<br>Gini:", Gini))) +
+  geom_point(size = 3) +
+  theme_minimal() +
+  labs(title = "Gini Coefficients by Country and Continent (2024)",
+       x = "Continent",
+       y = "Gini Coefficient") +
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 90, hjust = 1))
+
+interactive_plot <- ggplotly(p1, tooltip = "text")
+
+interactive_plot
+
+```
+
+**Evolution of Mean Gini Coefficient by Continent**
+```{r}
+library(dplyr)
+
+mean_by_continent <- pf_long %>%
+  group_by(continent, Year) %>%
+  summarise(mean_gini = mean(Gini, na.rm = TRUE))
+```
+
+```{r}
+p2 <-
+  ggplot(mean_by_continent, aes(x = Year, y = mean_gini,
+                                color = continent, group = continent)) +
+  geom_line() +
+  scale_x_discrete(breaks = seq(1800, 2050, 10)) +
+  labs(x = 'Year', y = 'Mean Gini Coefficient', title = 'Evolution of Mean Gini Coefficient by Continent') +
+  theme(axis.text.x = element_text(angle = 90))
+
+ggsave(plot = p2, 'Evolution_of_Mean_Gini_Coefficient_by_Continent.png')
+
+print(p2)
+```
+
+```{r}
+p3 <- p2 + facet_wrap(~continent) # To show each continent separate
+
+ggsave(plot = p3, 'Evolution_of_Mean_Gini_Coefficient_by_Continent_separated.png')
+```
+
+South America consistently has the highest inequality, with significant fluctuations over time. Europe shows a notable decline in inequality, especially from the mid-20th century onward, reaching the lowest levels among all continents by 2050. Africa and North America maintain relatively stable mid-range coefficients throughout the period. Asia experiences an increase in inequality from the mid-20th century, while Oceania shows some variability but remains in the middle range.
+
+Another interesting insight is that in the early 2020s, there was a notable increase in inequality across all continents, probably due to the COVID-19 pandemic and how it hindered the market at that time.
+
+**Normality & Summary Statistics for 2024**
+```{r Subsetting}
+pf_africa <- subset(pf_2024, pf_2024$continent == 'Africa')
+pf_asia <- subset(pf_2024, pf_2024$continent == 'Asia')
+pf_europe <- subset(pf_2024, pf_2024$continent == 'Europe')
+pf_oceania <- subset(pf_2024, pf_2024$continent == 'Oceania')
+pf_na <- subset(pf_2024, pf_2024$continent == 'North America')
+pf_sa <- subset(pf_2024, pf_2024$continent == 'South America')
+```
+
+```{r Normality Test}
+shapiro.test(pf_africa$Gini) 
+shapiro.test(pf_asia$Gini)
+shapiro.test(pf_europe$Gini)
+shapiro.test(pf_oceania$Gini)
+shapiro.test(pf_na$Gini)
+shapiro.test(pf_sa$Gini)
+
+# All continents are normally distributed for 2024 (i.e., p value > 0.05)
+
+```
+
+```{r Summary Stats}
+library(dplyr)
+
+summary_stats <- pf_2024 %>%
+  group_by(continent) %>%
+  summarise(
+    Mean_Gini = mean(Gini, na.rm = TRUE),
+    Median_Gini = median(Gini, na.rm = TRUE),
+    SD_Gini = sd(Gini, na.rm = TRUE)
+  )
+print(summary_stats)
+```
+
+This table shows quite significant standard deviations for 2024 in all continents but Oceania. Europe and Asia still have "acceptable" standard deviations; however, the rest of the continents show signs of great inequality amongst the intra-continental group.
