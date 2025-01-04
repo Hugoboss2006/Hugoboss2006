@@ -27,7 +27,6 @@ print(ch1_files[0], ":", ch3_files[0], "\n")
 ch1_files.sort()
 ch3_files.sort()
 
-print("Correctly paired....\n")
 print(ch1_files[0], ":", ch3_files[0], "\n")
 print(ch1_files[11], ":", ch3_files[11], "\n")
 
